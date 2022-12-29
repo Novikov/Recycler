@@ -5,6 +5,7 @@ import android.view.Menu
 import android.view.View
 import android.view.ViewGroup
 import android.widget.PopupMenu
+import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.RecyclerView
 import com.app.rw2.R
 import com.app.rw2.databinding.ItemUserBinding
@@ -16,8 +17,13 @@ class UsersAdapter(val userActionListener: UserActionListener) :
 
     var users: List<User> = emptyList()
         set(newValue) {
+            val diffCallBack = UserDiffCallBack(oldList = field, newList = newValue)
+            val diffResult = DiffUtil.calculateDiff(
+                diffCallBack,
+                true
+            ) // второй параметр и так по умолчанию true. написал для наглядности. в true будут учитываться не только изменения данных списка, но и перемещения элементов
             field = newValue
-            notifyDataSetChanged()
+            diffResult.dispatchUpdatesTo(this)
         }
 
     class UsersViewHolder(val binding: ItemUserBinding) : RecyclerView.ViewHolder(binding.root)
@@ -34,14 +40,19 @@ class UsersAdapter(val userActionListener: UserActionListener) :
 
     override fun onBindViewHolder(holder: UsersViewHolder, position: Int) {
         val user = users[position]
+        val context = holder.itemView.context
         with(holder.binding) {
             // инициализируем тег на всех комппонентах где пользователь может нажать
             holder.itemView.tag = user
             moreImageViewButton.tag = user
 
             userNameTextView.text = user.name
-            userCompanyTextView.text = user.company
+
+            userCompanyTextView.text =
+                if (user.company.isNotBlank()) user.company else context.getString(R.string.unemployed)
+
             if (user.photo.isNotBlank()) {
+                Glide.with(photoImageView.context).clear(photoImageView)
                 Glide.with(photoImageView.context)
                     .load(user.photo)
                     .circleCrop()
@@ -78,16 +89,19 @@ class UsersAdapter(val userActionListener: UserActionListener) :
         val popupMenu = PopupMenu(v.context, v)
         val context = v.context
         val user = v.tag as User
-        val position = users.indexOfFirst { it.id == user.id } //индекс первого совпадения
+        val position = users.indexOfFirst { it.id == user.id } // индекс первого совпадения
 
         with(popupMenu) {
             menu.add(0, ID_MOVE_UP, Menu.NONE, context.getString(R.string.move_up)).apply {
                 isEnabled = position > 0
             }
-            menu.add(1, ID_MOVE_DOWN, Menu.NONE, context.getString(R.string.move_down)).apply {
+            menu.add(0, ID_MOVE_DOWN, Menu.NONE, context.getString(R.string.move_down)).apply {
                 isEnabled = position < users.size - 1
             }
-            menu.add(2, ID_REMOVE, Menu.NONE, context.getString(R.string.remove))
+            menu.add(0, ID_REMOVE, Menu.NONE, context.getString(R.string.remove))
+            if (user.company.isNotBlank()) {
+                menu.add(0, ID_FIRE, Menu.NONE, context.getString(R.string.fire))
+            }
 
             setOnMenuItemClickListener {
                 when (it.itemId) {
@@ -99,6 +113,9 @@ class UsersAdapter(val userActionListener: UserActionListener) :
                     }
                     ID_REMOVE -> {
                         userActionListener.onUserDelete(user)
+                    }
+                    ID_FIRE -> {
+                        userActionListener.onUserFired(user)
                     }
                 }
 
@@ -113,5 +130,6 @@ class UsersAdapter(val userActionListener: UserActionListener) :
         private const val ID_MOVE_UP = 1
         private const val ID_MOVE_DOWN = 2
         private const val ID_REMOVE = 3
+        private const val ID_FIRE = 4
     }
 }

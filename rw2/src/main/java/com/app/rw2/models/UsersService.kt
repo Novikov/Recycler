@@ -9,7 +9,7 @@ class UsersService {
 
     private var users = mutableListOf<User>()
 
-    private val listeners = mutableSetOf<UsersListener>() // TODO: Не совсем понял зачем нужен набор данных функциональных типов
+    private val listeners = mutableSetOf<UsersListener>()
 
     init {
         val faker = Faker.instance()
@@ -32,8 +32,10 @@ class UsersService {
 //        users.remove(user) у data класса может быть переопределен метод equals и hashcode и удаление по ссылке может сломаться
         val indexToDelete = users.indexOfFirst { it.id == user.id }
         if (indexToDelete != -1) {
+            users =
+                ArrayList(users) // нужно не забывать передавать новый список иначе DiffUtils не отработает т.к источник данных и адаптер будет ссылаться на одну и туже коллекцию. В реальных проектах этого делать не придется потому что БД или БЭК вернет новый список данных
             users.removeAt(indexToDelete)
-            notifyChanges()
+            updateAdapter()
         }
     }
 
@@ -42,8 +44,19 @@ class UsersService {
         if (oldIndex == -1) return
         val newIndex = oldIndex + moveBy
         if (newIndex < 0 || newIndex >= users.size) return
+        users = ArrayList(users)
         Collections.swap(users, oldIndex, newIndex)
-        notifyChanges()
+        updateAdapter()
+    }
+
+    // TODO: Разобраться почему не отработает этот метод если сделать поле company - var
+    fun fireUser(user: User) {
+        val index = users.indexOfFirst { it.id == user.id }
+        if (index == -1) return
+        val updatedUser = users[index].copy(company = "")
+        users = ArrayList(users)
+        users[index] = updatedUser
+        updateAdapter()
     }
 
     fun addListener(listener: UsersListener) {
@@ -55,7 +68,7 @@ class UsersService {
         listeners.remove(listener)
     }
 
-    private fun notifyChanges() {
+    private fun updateAdapter() {
         listeners.forEach { it.invoke(users) }
     }
 

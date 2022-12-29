@@ -9,7 +9,8 @@ class UsersService {
 
     private var users = mutableListOf<User>()
 
-    private val listeners = mutableSetOf<UsersListener>() // TODO: Не совсем понял зачем нужен набор данных функциональных типов
+    private val listeners =
+        mutableSetOf<UsersListener>() // странный способ держания слушателя. сет не нужен для одного элемента.
 
     init {
         val faker = Faker.instance()

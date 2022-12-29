@@ -3,6 +3,7 @@ package com.app.rw2
 import android.os.Bundle
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
+import androidx.recyclerview.widget.DefaultItemAnimator
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.app.rw2.adapter.UserActionListener
 import com.app.rw2.adapter.UsersAdapter
@@ -35,12 +36,24 @@ class MainActivity : AppCompatActivity() {
                 override fun onUserDetails(user: User) {
                     Toast.makeText(this@MainActivity, user.name, Toast.LENGTH_LONG).show()
                 }
+
+                override fun onUserFired(user: User) {
+                    usersService.fireUser(user)
+                }
             }
         )
 
         val layoutManager = LinearLayoutManager(this)
         binding.recyclerView.layoutManager = layoutManager
         binding.recyclerView.adapter = adapter
+
+        // Выключение анимации для обновления элемента списка (fire user)
+        val itemAnimator = binding.recyclerView.itemAnimator
+        if (itemAnimator is DefaultItemAnimator) {
+            itemAnimator.supportsChangeAnimations = false
+        }
+
+        // TODO: Узнать можно ли это делать с помощью payload
 
         usersService.addListener(usersListener)
     }
